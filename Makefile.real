@@ -103,6 +103,22 @@ install: modules
 	@echo Reboot.
 	@echo
 
+OUT := $(BACKPORT_DIR)/out
+OUT_MODULES := $(OUT)/modules
+MODULES_INTERMEDIATES := $(OUT)/intermediates
+KERNEL_RELEASE := $(shell cat $(KLIB_BUILD)/include/config/kernel.release)
+KERNEL_MODULES_DIR=$(MODULES_INTERMEDIATES)/lib/modules/$(KERNEL_RELEASE)
+
+.PHONY: modules_copy
+modules_copy: modules
+	@$(MAKE) -C $(KLIB_BUILD) M=$(BACKPORT_DIR)				\
+		INSTALL_MOD_PATH=$(MODULES_INTERMEDIATES)				\
+		INSTALL_MOD_STRIP=1 CONFIG_MODULE_SIG_ALL=			\
+		_emodinst_
+	@mkdir -p $(OUT_MODULES)
+	@find $(KERNEL_MODULES_DIR) -type f -name '*.ko'	\
+		-exec mv {} $(OUT_MODULES) \;
+
 .PHONY: modules_install
 modules_install: install
 
@@ -121,6 +137,7 @@ clean:
 	@$(MAKE) -f Makefile.build clean
 	@$(MAKE) -C kconf clean
 	@$(MAKE) -f Makefile.backport clean
+	@rm -rf $(OUT)
 
 .PHONY:remove-drm-headers
 remove-drm-headers:
