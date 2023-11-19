@@ -39,7 +39,33 @@ jobs:
           make -j$(nproc) modules_copy
 
       - name: Pack modules
-        run: zip -j i915_dsm-${{ matrix.version }}_epyc7002.zip out/modules/*
+        run: |
+          echo "get firmware"
+          SOURCE=/tmp/intel-gpu-firmware
+          git clone https://github.com/intel-gpu/intel-gpu-firmware.git ${SOURCE}
+          mv ${SOURCE}/firmware ${SOURCE}/i915  # for compatibility with intel's naming
+          while read L; do
+            if [ -e "${SOURCE}/${L}" ]; then
+              mkdir -p "$(dirname out/firmware/${L})"
+              cp "${SOURCE}/${L}" "out/firmware/${L}"
+            else
+              echo "Missing ${L}"
+            fi
+          done < <(find out/modules -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
+
+          echo "make install script"
+          cat > out/install.sh <<EOF
+          #!/bin/bash
+          ROOTPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+          mkdir -p /usr/lib/firmware/i915
+          cp -Rf ${ROOTPATH}/firmware/* /usr/lib/firmware
+          cp -Rf ${ROOTPATH}/modules/* /usr/lib/modules
+          depmod -a
+          modprobe i915 enable_guc=2
+          EOF
+
+          echo "Pack"
+          (cd out; zip -r ${{ github.workspace }}/i915_dsm-${{ matrix.version }}_epyc7002.zip ./install.sh ./firmware ./modules)
 
       - name: Save to artifacts
         uses: actions/upload-artifact@v3
