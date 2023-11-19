@@ -54,7 +54,7 @@ jobs:
           done < <(find out/modules -name \*.ko -exec sh -c '/sbin/modinfo {} | grep ^firmware' \; | awk '{print $2}')
 
           echo "make install script"
-          cat > out/install.sh <<EOF
+          cat > out/install.sh <<"EOF"
           #!/bin/bash
           ROOTPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
           mkdir -p /usr/lib/firmware/i915
