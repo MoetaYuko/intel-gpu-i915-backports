@@ -38,13 +38,35 @@ jobs:
           make defconfig-drm
           make -j$(nproc) modules_copy
 
-      - name: Pack modules
-        run: zip -j i915_dsm-${{ matrix.version }}_epyc7002.zip out/modules/*
+      - name: Checkout firmware
+        uses: actions/checkout@v4
+        with:
+          repository: intel-gpu/intel-gpu-firmware
+          path: intel-gpu-firmware
+
+      - name: Copy necessary firmware
+        run: |
+          SOURCE=intel-gpu-firmware/firmware
+          DEST=out/firmware
+          mkdir -p $DEST
+          while read L; do
+            L=$(basename $L)
+            if [ -e "$SOURCE/$L" ]; then
+              cp "$SOURCE/$L" $DEST
+            else
+              echo "::warning ::Missing $L"
+            fi
+          done < <(find out/modules -name \*.ko -exec /sbin/modinfo {} -F firmware \;)
+          chmod 644 $DEST/*
+
+      - name: Pack modules and firmware
+        working-directory: out
+        run: zip -r i915_dsm-${{ matrix.version }}_epyc7002.zip firmware modules
 
       - name: Save to artifacts
         uses: actions/upload-artifact@v3
         with:
-          path: i915_dsm-${{ matrix.version }}_epyc7002.zip
+          path: out/i915_dsm-${{ matrix.version }}_epyc7002.zip
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
