@@ -551,7 +551,7 @@ static int intel_engine_setup(struct intel_gt *gt, enum intel_engine_id id,
 		engine->flags |= I915_ENGINE_HAS_EU_PRIORITY;
 
 		/* EU attention is not available on VFs */
-		if(!IS_SRIOV_VF(gt->i915))
+		if (HAS_SRIOV(i915) && !IS_SRIOV_VF(i915))
 			engine->flags |= I915_ENGINE_HAS_EU_ATTENTION;
 
 		/* we only care about run alone on platforms that have a CCS */
