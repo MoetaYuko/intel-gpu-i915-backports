@@ -1,0 +1,44 @@
+name: Build i915 for PVE
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "*-pve-*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: debian:12
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      DPKG_COLORS: always
+      FORCE_UNSAFE_CONFIGURE: 1
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/00noconfirm
+          apt-get update && \
+            apt-get install -yq build-essential devscripts dkms dh-dkms
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Build
+        working-directory: src
+        run: make i915dkmsdeb-pkg OS_DISTRIBUTION=UBUNTU_22.04_DESKTOP
+
+      - name: Save to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: "*.deb"
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body_path: versions
+          files: "*.deb"
