@@ -911,6 +911,9 @@ static const struct intel_device_info jsl_info = {
 	PLATFORM(INTEL_JASPERLAKE),
 	.platform_engine_mask = BIT(RCS0) | BIT(BCS0) | BIT(VCS0) | BIT(VECS0),
 	.ppgtt_size = 36,
+#ifdef CONFIG_SYNO_EPYC7002
+	.display = { 0 },
+#endif
 };
 
 #define GEN12_FEATURES \
